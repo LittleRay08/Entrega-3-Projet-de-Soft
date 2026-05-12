@@ -1,12 +1,17 @@
 ﻿# Assinar Servico de Feira - Implementacao Java
 
+ 
+## Integrante
+- Rayane Yumi | RA: 10410892
+
+
 ## Estrutura do Projeto (Arquitetura MVC - BCE)
 
 `
 AssinarServicoFeira/
 |-- src/
 |   |-- Main.java                          # Ponto de entrada
-|   |-- fronteira/                         # Boundary (Interface com usuario)
+|   |-- fronteira/                         
 |   |   |-- TelaAssinaturaFeira.java
 |   |-- controle/                          # Controller (Logica de negocio)
 |   |   |-- AssinaturaController.java
@@ -78,6 +83,3 @@ java -cp bin Main
 Os dados sao persistidos em arquivos CSV na pasta dados/:
 - clientes.csv: Armazena dados dos clientes cadastrados
 - ssinaturas.csv: Armazena as assinaturas realizadas
-
-## Integrante
-- Rayane Yumi | RA: 10410892
