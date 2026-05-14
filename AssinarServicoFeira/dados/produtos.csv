@@ -1,0 +1,10 @@
+id;nome;categoria;preco;estoque;unidade
+1;Maca;FRUTA;5.50;50;KG
+2;Banana;FRUTA;3.00;80;KG
+3;Laranja;FRUTA;4.50;60;KG
+4;Tomate;LEGUME;8.00;40;KG
+5;Cenoura;LEGUME;6.00;50;KG
+6;Batata;LEGUME;7.00;70;KG
+7;Alface;VERDURA;3.50;45;UNIDADE
+8;Couve;VERDURA;4.00;50;KG
+9;Espinafre;VERDURA;5.50;30;KG
