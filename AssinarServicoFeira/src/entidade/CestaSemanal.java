@@ -8,8 +8,8 @@ import java.util.Map;
 
 /**
  * Classe de Entidade - Representa uma Cesta Semanal de Produtos.
- * Diagrama de Classes: Atributos privados (-) e metodos publicos (+)
- * ESPECIALISTA: Valida suas proprias regras de negocio.
+ * Diagrama de Classes: Atributos privados (-) e métodos públicos (+)
+ * ESPECIALISTA: Valida suas próprias regras de negócio.
  * CRIADOR: Assinatura cria a cesta.
  */
 public class CestaSemanal {
@@ -35,6 +35,7 @@ public class CestaSemanal {
         this.totalCesta = 0.0;
     }
 
+    // Getters e Setters
     public int getIdCesta() { return idCesta; }
     public void setIdCesta(int idCesta) { this.idCesta = idCesta; }
 
@@ -52,15 +53,15 @@ public class CestaSemanal {
     public double getTotalCesta() { return totalCesta; }
 
     /**
-     * Adiciona um produto a cesta.
-     * ESPECIALISTA: Valida suas proprias regras.
+     * Adiciona um produto à cesta.
+     * ESPECIALISTA: Valida suas próprias regras.
      */
     public boolean adicionarProduto(Produto p, int qtd) {
         if (p == null || !p.verificarEstoque(qtd)) {
             return false;
         }
 
-        // Valida regras do plano
+        // Valida regras do plano (limite de itens)
         if (!validarRegrasPlano(p, qtd)) {
             return false;
         }
@@ -81,26 +82,32 @@ public class CestaSemanal {
     }
 
     /**
-     * Valida se o produto está de acordo com o plano.
-     * ESPECIALISTA: Valida suas proprias regras de negocio.
+     * Valida se a quantidade total de itens na cesta respeita o limite do plano.
+     * ESPECIALISTA: Soma as quantidades individuais de cada produto.
      */
-    public boolean validarRegrasPlano(Produto p, int qtd) {
+    public boolean validarRegrasPlano(Produto p, int qtdDesejada) {
         if (plano == null) {
             return true;
         }
 
-        // Verifica limite de itens do plano
-        if (produtosEscolhidos.size() >= plano.getLimiteItens() && 
-            !produtosEscolhidos.containsKey(p)) {
+        // Soma a quantidade de todos os itens já presentes na cesta
+        int totalItensAtuais = 0;
+        for (int qtd : produtosEscolhidos.values()) {
+            totalItensAtuais += qtd;
+        }
+
+        // Se o produto já está na cesta, a lógica do put() substitui a anterior.
+        // Verificamos se o novo total (atuais + nova quantidade) excede o limite.
+        if (totalItensAtuais + qtdDesejada > plano.getLimiteItens()) {
+            System.out.println("[ALERTA] Limite do plano excedido! Máximo: " + plano.getLimiteItens());
             return false;
         }
 
-        // Pode ser expandido com outras regras de negocio
         return true;
     }
 
     /**
-     * Calcula o total da cesta.
+     * Calcula o total financeiro da cesta (informativo).
      */
     public double calcularTotal() {
         totalCesta = 0.0;
@@ -113,6 +120,17 @@ public class CestaSemanal {
     }
 
     /**
+     * Retorna a quantidade total de unidades na cesta (Soma das quantidades).
+     */
+    public int quantidadeItens() {
+        int total = 0;
+        for (int qtd : produtosEscolhidos.values()) {
+            total += qtd;
+        }
+        return total;
+    }
+
+    /**
      * Retorna lista dos produtos na cesta.
      */
     public List<Produto> listarProdutos() {
@@ -120,22 +138,16 @@ public class CestaSemanal {
     }
 
     /**
-     * Verifica se a cesta esta vazia.
+     * Verifica se a cesta está vazia.
      */
     public boolean estaVazia() {
         return produtosEscolhidos.isEmpty();
     }
 
-    /**
-     * Retorna quantidade de itens unicos na cesta.
-     */
-    public int quantidadeItens() {
-        return produtosEscolhidos.size();
-    }
-
     @Override
     public String toString() {
         return "CestaSemanal [ID=" + idCesta + ", Data=" + dataReferencia +
-               ", Status=" + status + ", Total=R$" + String.format("%.2f", totalCesta) + "]";
+               ", Status=" + status + ", Total=R$" + String.format("%.2f", totalCesta) + 
+               ", Itens=" + quantidadeItens() + "]";
     }
 }
