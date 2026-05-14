@@ -261,15 +261,13 @@ public class TelaAssinaturaFeira {
             System.out.println("\n============================================");
             System.out.println("   ASSINATURA REALIZADA COM SUCESSO!       ");
             System.out.println("============================================");
-            System.out.println("Protocolo: " + assinaturaSalva.getIdProtocolo());
+            System.out.println("Protocolo: " + assinatura.getIdProtocolo());
             System.out.println("Plano: " + plano.getNome());
             System.out.println("Valor: R$" + String.format("%.2f", plano.getValorMensal()));
             System.out.println("Endereco de entrega: " + endereco.toString());
             System.out.println("Obrigado por assinar! Sua cesta chegara em breve.");
 
         } catch (IllegalArgumentException | IllegalStateException e) {
-            System.out.println("\nErro: " + e.getMessage());
-        } catch (RuntimeException e) {
             System.out.println("\nErro: " + e.getMessage());
         } catch (IOException e) {
             System.out.println("\nErro ao acessar dados: " + e.getMessage());

@@ -217,13 +217,12 @@ public class AssinaturaController {
             cestaDAO.salvar(cestaPendente);
         }
 
-        // Prepara retorno antes de limpar o estado temporario
-        Assinatura assinaturaFinalizada = assinaturaPendente;
+        // Limpa estado temporario
         assinaturaPendente = null;
         cestaPendente = null;
         produtosSelecionados.clear();
 
-        return assinaturaFinalizada;
+        return assinaturaPendente;
     }
 
     /**
