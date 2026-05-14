@@ -9,12 +9,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 
 /**
  * Classe Controller - Orquestra o fluxo do caso de uso "Assinar Servico de Feira".
- * INVENÇÃO PURA (conforme diagrama): Orquestra, mas nao faz a logica pesada.
- * As entidades (especialistas) fazem suas proprias validacoes.
+ * INVENÇÃO PURA: Orquestra, mas não faz a lógica pesada.
+ * As entidades (especialistas) fazem suas próprias validações.
  */
 public class AssinaturaController {
     private ClienteDAO clienteDAO;
@@ -22,8 +21,8 @@ public class AssinaturaController {
     private PlanoFeiraDAO planoFeiraDAO;
     private ProdutoDAO produtoDAO;
     private CestaSemanalDAO cestaDAO;
-    
-    // Estado temporario da assinatura em progresso
+
+    // Estado temporário da assinatura em progresso
     private Assinatura assinaturaPendente;
     private CestaSemanal cestaPendente;
     private Map<Produto, Integer> produtosSelecionados;
@@ -38,79 +37,62 @@ public class AssinaturaController {
     }
 
     /**
-     * Etapa 1 do Diagrama de Sequencia: Validar Acesso
-     * Conforme diagrama: validarAcesso(celular) -> Envia SMS
+     * Etapa 1: Validar Acesso (SMS)
      */
     public boolean validarAcesso(String celular) {
-        // Validacao basica
         if (celular == null || celular.length() < 10) {
             return false;
         }
-        
-        // Simula envio de SMS
         System.out.println("[SMS] Codigo enviado para " + celular);
         System.out.println("[DEBUG] Codigo de teste: 123456");
-        
         return true;
     }
 
     /**
-     * Etapa 2 do Diagrama de Sequencia: Confirmar Codigo SMS
-     * Conforme diagrama: confirmarCodigo(codigo)
+     * Etapa 2: Confirmar Código
      */
     public boolean confirmarCodigo(String codigoRecebido) {
-        // Simula validacao (em producao, seria verificado com SMS provider)
         String codigoEsperado = "123456";
         return codigoRecebido != null && codigoRecebido.equals(codigoEsperado);
     }
 
     /**
-     * Etapa 3 do Diagrama de Sequencia: Buscar Planos
-     * Conforme diagrama: buscarPlanos()
+     * Etapa 3: Listar Planos
      */
     public List<PlanoFeira> listarPlanosDisponiveis() {
         return planoFeiraDAO.listarPlanos();
     }
 
-    /**
-     * Busca um plano pelo codigo.
-     */
     public PlanoFeira buscarPlano(String codigo) {
         return planoFeiraDAO.buscarPorCodigo(codigo);
     }
 
     /**
-     * Inicia o processo de assinatura com um plano selecionado.
-     * Conforme diagrama: iniciarAssinatura(plano)
-     * Cria uma nova Assinatura (PADRAO CRIADOR).
+     * Inicia o processo de assinatura.
      */
     public Assinatura iniciarAssinatura(String cpf, String codigoPlano) throws IOException {
-        // Valida plano
         PlanoFeira plano = planoFeiraDAO.buscarPorCodigo(codigoPlano);
         if (plano == null) {
             throw new IllegalArgumentException("Plano invalido: " + codigoPlano);
         }
 
-        // Verifica se cliente existe
         Cliente cliente = clienteDAO.buscarPorCpf(cpf);
         if (cliente == null) {
             throw new IllegalArgumentException("Cliente nao encontrado. Cadastre-se primeiro.");
         }
 
-        // Verifica se ja tem assinatura ativa
         if (assinaturaDAO.clienteTemAssinaturaAtiva(cpf)) {
             throw new IllegalStateException("Cliente ja possui uma assinatura ativa.");
         }
 
-        // CRIADOR: Assinatura cria a si mesma conforme diagrama
         int id = assinaturaDAO.getProximoId();
         LocalDate dataInicio = LocalDate.now();
         LocalDate dataFim = dataInicio.plusMonths(1);
 
-        assinaturaPendente = new Assinatura(id, cpf, plano, dataInicio, dataFim, 
-                                           "PENDENTE_APROVACAO", plano.getValorMensal());
+        // PADRÃO CRIADOR: Assinatura é instanciada
+        assinaturaPendente = new Assinatura(id, cpf, plano, dataInicio, dataFim,
+                "PENDENTE_APROVACAO", plano.getValorMensal());
 
-        // Cria a cesta semanal para o cliente montar
         int idCesta = cestaDAO.getProximoId();
         cestaPendente = new CestaSemanal(idCesta, dataInicio, plano);
 
@@ -118,135 +100,101 @@ public class AssinaturaController {
     }
 
     /**
-     * Etapa 4 do Diagrama de Sequencia: Buscar Produtos por Categoria
-     * Conforme diagrama: buscarProdutos(categoria)
+     * Etapa 4 e 5: Gestão de Produtos na Cesta
      */
     public List<Produto> buscarProdutos(String categoria) throws IOException {
         return produtoDAO.listarProdutosPorCategoria(categoria);
     }
 
-    /**
-     * Lista todos os produtos disponiveis.
-     */
     public List<Produto> listarTodosProdutos() throws IOException {
         return produtoDAO.listarTodosProdutos();
     }
 
-    /**
-     * Etapa 5 do Diagrama de Sequencia: Adicionar Itens a Cesta
-     * Conforme diagrama: adicionarItens(lista)
-     * Delega para a CestaSemanal (ESPECIALISTA em validar suas regras).
-     */
     public boolean adicionarProdutoNaCesta(Produto produto, int quantidade) {
         if (cestaPendente == null) {
-            throw new IllegalStateException("Nenhuma cesta em progresso. Inicie uma assinatura primeiro.");
+            throw new IllegalStateException("Nenhuma cesta em progresso.");
         }
-
-        // CestaSemanal valida suas proprias regras
         return cestaPendente.adicionarProduto(produto, quantidade);
     }
 
-    /**
-     * Remove um produto da cesta.
-     */
     public void removerProdutoDaCesta(Produto produto) {
         if (cestaPendente != null) {
             cestaPendente.removerProduto(produto);
         }
     }
 
-    /**
-     * Retorna a cesta atual em edicao.
-     */
     public CestaSemanal getCestaPendente() {
         return cestaPendente;
     }
 
     /**
-     * Busca um cliente pelo CPF.
+     * Gestão de Clientes
      */
     public Cliente buscarCliente(String cpf) throws IOException {
         return clienteDAO.buscarPorCpf(cpf);
     }
 
-    /**
-     * Cadastra um novo cliente no sistema.
-     */
     public void cadastrarCliente(Cliente cliente) throws IOException {
         clienteDAO.salvar(cliente);
     }
 
     /**
-     * Etapa 6 do Diagrama de Sequencia: Finalizar Assinatura
-     * Conforme diagrama: finalizarAssinatura(endereco, cartao)
-     * Executa as acoes finais: registrar endereco, mudar status, autorizar transacao, gerar protocolo.
+     * Etapa 6: Finalizar Assinatura
+     * CORREÇÃO: Valor de pagamento fixado pelo Plano.
      */
-    public Assinatura finalizarAssinatura(Endereco endereco, String numeroCartao, 
+    public Assinatura finalizarAssinatura(Endereco endereco, String numeroCartao,
                                          String nomeCartao, String validade, String cvv) throws IOException {
         if (assinaturaPendente == null) {
             throw new IllegalStateException("Nenhuma assinatura em progresso.");
         }
 
-        // Acao 1 do diagrama: registrarEndereco(endereco)
+        // 1. Registrar endereço
         assinaturaPendente.registrarEndereco(endereco);
 
-        // Acao 2 do diagrama: mudarStatus("Aguardando Aprovacao")
+        // 2. Mudar status temporário
         assinaturaPendente.mudarStatus("AGUARDANDO_APROVACAO");
 
-        // Acao 3 do diagrama: autorizarTransacao(valor)
-        Pagamento pagamento = new Pagamento(1, numeroCartao, nomeCartao, validade, cvv,
-                                           assinaturaPendente.getValorMensal());
-        boolean transacaoAutorizada = autorizarTransacao(assinaturaPendente.getValorMensal(), pagamento);
+        // 3. CORREÇÃO DE REGRA DE NEGÓCIO:
+        // O valor enviado para a operadora é o valor mensal do PLANO,
+        double valorFixoAssinatura = assinaturaPendente.getPlano().getValorMensal();
+
+        Pagamento pagamento = new Pagamento(1, numeroCartao, nomeCartao, validade, cvv, valorFixoAssinatura);
+        boolean transacaoAutorizada = autorizarTransacao(valorFixoAssinatura, pagamento);
 
         if (!transacaoAutorizada) {
             assinaturaPendente.mudarStatus("RECUSADO");
             throw new RuntimeException("Transacao recusada. Verifique os dados do cartao.");
         }
 
-        // Acao 4 do diagrama: setStatus("Aprovado")
+        // 4. Ativar assinatura e gerar protocolo
         assinaturaPendente.mudarStatus("ATIVA");
-
-        // Acao 5 do diagrama: gerarProtocolo()
         String protocolo = assinaturaPendente.gerarProtocolo();
 
-        // Persiste a assinatura
+        // 5. Persistência
         assinaturaDAO.salvar(assinaturaPendente);
-
-        // Persiste a cesta
         if (cestaPendente != null && !cestaPendente.estaVazia()) {
             cestaDAO.salvar(cestaPendente);
         }
 
-        // Limpa estado temporario
+        // 6. Limpeza de estado
+        Assinatura concluida = assinaturaPendente;
         assinaturaPendente = null;
         cestaPendente = null;
         produtosSelecionados.clear();
 
-        return assinaturaPendente;
+        return concluida;
     }
 
-    /**
-     * Etapa 6.3 do Diagrama de Sequencia: Autorizar Transacao
-     * Conforme diagrama: autorizarTransacao(valor) - Ator Secundario: Operadora
-     * Delega para Pagamento (ESPECIALISTA em validar transacoes).
-     */
     private boolean autorizarTransacao(double valor, Pagamento pagamento) {
-        // Pagamento valida suas proprias regras (ESPECIALISTA)
+        // Delega para a entidade Pagamento (Especialista)
         return pagamento.autorizar(valor);
     }
 
-    /**
-     * Verifica se o cliente ja possui uma assinatura ativa.
-     */
     public boolean clienteTemAssinaturaAtiva(String cpf) throws IOException {
         return assinaturaDAO.clienteTemAssinaturaAtiva(cpf);
     }
 
-    /**
-     * Lista assinaturas de um cliente.
-     */
     public List<Assinatura> listarAssinaturasCliente(String cpf) throws IOException {
         return assinaturaDAO.buscarPorCpf(cpf);
     }
 }
-
