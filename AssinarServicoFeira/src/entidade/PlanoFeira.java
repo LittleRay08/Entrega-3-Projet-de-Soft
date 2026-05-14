@@ -1,4 +1,4 @@
-﻿package entidade;
+package entidade;
 
 /**
  * Classe de Entidade (Dominio) - Representa um Plano de Feira disponivel.
@@ -9,6 +9,7 @@ public class PlanoFeira {
     private String descricao;
     private double valorMensal;
     private int frequenciaSemanal;
+    private int limiteItens; // Limite de itens por cesta semanal (de acordo com diagrama de classes)
 
     public PlanoFeira() {}
 
@@ -18,6 +19,16 @@ public class PlanoFeira {
         this.descricao = descricao;
         this.valorMensal = valorMensal;
         this.frequenciaSemanal = frequenciaSemanal;
+        this.limiteItens = 10; // Padrão
+    }
+
+    public PlanoFeira(String codigo, String nome, String descricao, double valorMensal, int frequenciaSemanal, int limiteItens) {
+        this.codigo = codigo;
+        this.nome = nome;
+        this.descricao = descricao;
+        this.valorMensal = valorMensal;
+        this.frequenciaSemanal = frequenciaSemanal;
+        this.limiteItens = limiteItens;
     }
 
     public String getCodigo() { return codigo; }
@@ -34,6 +45,9 @@ public class PlanoFeira {
 
     public int getFrequenciaSemanal() { return frequenciaSemanal; }
     public void setFrequenciaSemanal(int frequenciaSemanal) { this.frequenciaSemanal = frequenciaSemanal; }
+
+    public int getLimiteItens() { return limiteItens; }
+    public void setLimiteItens(int limiteItens) { this.limiteItens = limiteItens; }
 
     @Override
     public String toString() {

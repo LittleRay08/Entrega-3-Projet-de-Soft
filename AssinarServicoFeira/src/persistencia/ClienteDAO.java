@@ -1,4 +1,4 @@
-﻿package persistencia;
+package persistencia;
 
 import entidade.Cliente;
 import java.io.*;
@@ -19,7 +19,7 @@ public class ClienteDAO {
                 arquivo.createNewFile();
                 // Escreve cabecalho
                 try (PrintWriter pw = new PrintWriter(new FileWriter(arquivo))) {
-                    pw.println("cpf;nome;email;telefone;endereco");
+                    pw.println("cpf;nome;email;telefone");
                 }
             } catch (IOException e) {
                 System.out.println("Erro ao criar arquivo de clientes: " + e.getMessage());
@@ -29,9 +29,9 @@ public class ClienteDAO {
 
     public void salvar(Cliente cliente) throws IOException {
         try (PrintWriter pw = new PrintWriter(new FileWriter(ARQUIVO, true))) {
+            // Serializa apenas dados basicos do cliente
             pw.println(cliente.getCpf() + ";" + cliente.getNome() + ";" + 
-                      cliente.getEmail() + ";" + cliente.getTelefone() + ";" + 
-                      cliente.getEndereco());
+                      cliente.getEmail() + ";" + cliente.getTelefone());
         }
     }
 
@@ -41,8 +41,9 @@ public class ClienteDAO {
             br.readLine(); // Pula cabecalho
             while ((linha = br.readLine()) != null) {
                 String[] dados = linha.split(";");
-                if (dados.length >= 5 && dados[0].equals(cpf)) {
-                    return new Cliente(dados[0], dados[1], dados[2], dados[3], dados[4]);
+                if (dados.length >= 4 && dados[0].equals(cpf)) {
+                    Cliente cliente = new Cliente(dados[0], dados[1], dados[2], dados[3]);
+                    return cliente;
                 }
             }
         }
@@ -56,8 +57,9 @@ public class ClienteDAO {
             br.readLine(); // Pula cabecalho
             while ((linha = br.readLine()) != null) {
                 String[] dados = linha.split(";");
-                if (dados.length >= 5) {
-                    clientes.add(new Cliente(dados[0], dados[1], dados[2], dados[3], dados[4]));
+                if (dados.length >= 4) {
+                    Cliente cliente = new Cliente(dados[0], dados[1], dados[2], dados[3]);
+                    clientes.add(cliente);
                 }
             }
         }

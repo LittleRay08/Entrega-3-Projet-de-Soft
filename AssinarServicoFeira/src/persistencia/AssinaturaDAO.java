@@ -1,4 +1,4 @@
-﻿package persistencia;
+package persistencia;
 
 import entidade.Assinatura;
 import java.io.*;
@@ -20,7 +20,7 @@ public class AssinaturaDAO {
                 arquivo.getParentFile().mkdirs();
                 arquivo.createNewFile();
                 try (PrintWriter pw = new PrintWriter(new FileWriter(arquivo))) {
-                    pw.println("id;cpfCliente;plano;dataInicio;dataFim;status;valorMensal");
+                    pw.println("id;cpfCliente;plano;dataInicio;dataFim;status;valorMensal;protocolo");
                 }
             } catch (IOException e) {
                 System.out.println("Erro ao criar arquivo de assinaturas: " + e.getMessage());
@@ -46,10 +46,12 @@ public class AssinaturaDAO {
 
     public void salvar(Assinatura assinatura) throws IOException {
         try (PrintWriter pw = new PrintWriter(new FileWriter(ARQUIVO, true))) {
+            String nomePlano = assinatura.getPlano() != null ? assinatura.getPlano().getNome() : "N/A";
+            String idProtocolo = assinatura.getIdProtocolo() != null ? assinatura.getIdProtocolo() : "";
             pw.println(assinatura.getId() + ";" + assinatura.getCpfCliente() + ";" +
-                      assinatura.getPlano() + ";" + assinatura.getDataInicio() + ";" +
+                      nomePlano + ";" + assinatura.getDataInicio() + ";" +
                       assinatura.getDataFim() + ";" + assinatura.getStatus() + ";" +
-                      assinatura.getValorMensal());
+                      assinatura.getValorMensal() + ";" + idProtocolo);
         }
     }
 
@@ -61,14 +63,16 @@ public class AssinaturaDAO {
             while ((linha = br.readLine()) != null) {
                 String[] dados = linha.split(";");
                 if (dados.length >= 7 && dados[1].equals(cpf)) {
-                    Assinatura a = new Assinatura(
-                        Integer.parseInt(dados[0]),
-                        dados[1], dados[2],
-                        LocalDate.parse(dados[3]),
-                        LocalDate.parse(dados[4]),
-                        dados[5],
-                        Double.parseDouble(dados[6])
-                    );
+                    Assinatura a = new Assinatura();
+                    a.setId(Integer.parseInt(dados[0]));
+                    a.setCpfCliente(dados[1]);
+                    a.setDataInicio(LocalDate.parse(dados[3]));
+                    a.setDataFim(LocalDate.parse(dados[4]));
+                    a.setStatus(dados[5]);
+                    a.setValorMensal(Double.parseDouble(dados[6]));
+                    if (dados.length >= 8) {
+                        a.setIdProtocolo(dados[7]);
+                    }
                     resultado.add(a);
                 }
             }
@@ -84,14 +88,16 @@ public class AssinaturaDAO {
             while ((linha = br.readLine()) != null) {
                 String[] dados = linha.split(";");
                 if (dados.length >= 7) {
-                    Assinatura a = new Assinatura(
-                        Integer.parseInt(dados[0]),
-                        dados[1], dados[2],
-                        LocalDate.parse(dados[3]),
-                        LocalDate.parse(dados[4]),
-                        dados[5],
-                        Double.parseDouble(dados[6])
-                    );
+                    Assinatura a = new Assinatura();
+                    a.setId(Integer.parseInt(dados[0]));
+                    a.setCpfCliente(dados[1]);
+                    a.setDataInicio(LocalDate.parse(dados[3]));
+                    a.setDataFim(LocalDate.parse(dados[4]));
+                    a.setStatus(dados[5]);
+                    a.setValorMensal(Double.parseDouble(dados[6]));
+                    if (dados.length >= 8) {
+                        a.setIdProtocolo(dados[7]);
+                    }
                     assinaturas.add(a);
                 }
             }

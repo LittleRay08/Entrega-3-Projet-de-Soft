@@ -1,9 +1,7 @@
-﻿package fronteira;
+package fronteira;
 
 import controle.AssinaturaController;
-import entidade.Assinatura;
-import entidade.Cliente;
-import entidade.PlanoFeira;
+import entidade.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -13,6 +11,13 @@ import java.util.Scanner;
  * Classe Fronteira (Boundary) - Interface com o usuario via console.
  * Corresponde a tela do prototipo e ao ator no diagrama de sequencia.
  * Responsavel por capturar entradas e exibir saidas.
+ * 
+ * Fluxo conforme Diagrama de Sequencia:
+ * 1. Valida Acesso (celular + SMS)
+ * 2. Busca e Seleciona Plano
+ * 3. Monta Cesta (loop por categorias)
+ * 4. Informa Endereco e Cartao
+ * 5. Finaliza com Protocolo
  */
 public class TelaAssinaturaFeira {
     private AssinaturaController controller;
@@ -65,31 +70,37 @@ public class TelaAssinaturaFeira {
 
     /**
      * Fluxo principal do caso de uso: Assinar Servico de Feira.
-     * Segue o diagrama de sequencia:
-     * 1. Cliente informa CPF
-     * 2. Sistema verifica cadastro
-     * 3. Se nao cadastrado, realiza cadastro
-     * 4. Exibe planos disponiveis
-     * 5. Cliente escolhe plano
-     * 6. Sistema confirma assinatura
+     * Conforme Diagrama de Sequencia com todas as etapas.
      */
     private void fluxoAssinarServico() {
         System.out.println("\n--- ASSINAR SERVICO DE FEIRA ---");
 
         try {
-            // Passo 1: Solicita CPF
-            System.out.print("Informe seu CPF: ");
-            String cpf = scanner.nextLine().trim();
+            // ETAPA 1: Validar Acesso (celular + SMS)
+            System.out.println("\n=== ETAPA 1: VALIDACAO DE ACESSO ===");
+            System.out.print("Informe seu celular (DDD + numero): ");
+            String celular = scanner.nextLine().trim();
 
-            if (cpf.isEmpty()) {
-                System.out.println("CPF nao pode ser vazio.");
+            if (!controller.validarAcesso(celular)) {
+                System.out.println("Celular invalido!");
                 return;
             }
 
-            // Passo 2: Verifica se cliente esta cadastrado
-            Cliente cliente = controller.buscarCliente(cpf);
+            System.out.print("\nDigite o codigo SMS recebido: ");
+            String codigoSMS = scanner.nextLine().trim();
 
-            // Passo 3: Se nao cadastrado, realiza cadastro
+            if (!controller.confirmarCodigo(codigoSMS)) {
+                System.out.println("Codigo SMS invalido!");
+                return;
+            }
+
+            System.out.println("Acesso validado com sucesso!");
+
+            // Busca/Cadastra Cliente
+            System.out.print("\nInforme seu CPF: ");
+            String cpf = scanner.nextLine().trim();
+
+            Cliente cliente = controller.buscarCliente(cpf);
             if (cliente == null) {
                 System.out.println("\nCliente nao encontrado. Vamos realizar seu cadastro.");
                 cliente = realizarCadastro(cpf);
@@ -101,47 +112,164 @@ public class TelaAssinaturaFeira {
             // Verifica se ja tem assinatura ativa
             if (controller.clienteTemAssinaturaAtiva(cpf)) {
                 System.out.println("\nVoce ja possui uma assinatura ativa!");
-                System.out.println("Consulte suas assinaturas no menu principal.");
                 return;
             }
 
-            // Passo 4: Exibe planos disponiveis
-            System.out.println("\n--- PLANOS DISPONIVEIS ---");
+            // ETAPA 2: Selecionar Plano
+            System.out.println("\n=== ETAPA 2: SELECAO DE PLANO ===");
+            System.out.println("--- PLANOS DISPONIVEIS ---");
             exibirPlanos();
 
-            // Passo 5: Cliente escolhe plano
             System.out.print("\nDigite o codigo do plano desejado (BASICO/PADRAO/PREMIUM): ");
             String codigoPlano = scanner.nextLine().trim().toUpperCase();
 
-            // Confirmacao
             PlanoFeira plano = controller.buscarPlano(codigoPlano);
             if (plano == null) {
                 System.out.println("Plano invalido!");
                 return;
             }
 
-            System.out.println("\n--- CONFIRMACAO ---");
-            System.out.println("Cliente: " + cliente.getNome());
-            System.out.println("Plano: " + plano.getNome());
-            System.out.println("Valor: R$" + plano.getValorMensal() + "/mes");
+            System.out.println("\nPlano selecionado: " + plano.getNome());
+            System.out.println("Valor: R$" + String.format("%.2f", plano.getValorMensal()) + "/mes");
             System.out.println("Frequencia: " + plano.getFrequenciaSemanal() + "x por semana");
-            System.out.print("\nConfirmar assinatura? (S/N): ");
-            String confirmacao = scanner.nextLine().trim().toUpperCase();
+            System.out.println("Limite de itens por cesta: " + plano.getLimiteItens());
 
-            if (!confirmacao.equals("S")) {
-                System.out.println("Assinatura cancelada pelo usuario.");
+            // Inicia Assinatura
+            Assinatura assinatura = controller.iniciarAssinatura(cpf, codigoPlano);
+            CestaSemanal cesta = controller.getCestaPendente();
+
+            if (assinatura == null || cesta == null) {
+                System.out.println("Erro ao iniciar assinatura!");
                 return;
             }
 
-            // Passo 6: Realiza assinatura
-            Assinatura assinatura = controller.realizarAssinatura(cpf, codigoPlano);
+            // ETAPA 3: Montar Cesta Semanal (loop por categorias)
+            System.out.println("\n=== ETAPA 3: MONTAGEM DA CESTA ===");
+            System.out.println("Limite: " + plano.getLimiteItens() + " itens");
+
+            String[] categorias = {"FRUTA", "LEGUME", "VERDURA"};
+            boolean montarMais = true;
+
+            for (String categoria : categorias) {
+                if (!montarMais) break;
+
+                System.out.println("\n--- " + categoria + "S ---");
+                List<Produto> produtos = controller.buscarProdutos(categoria);
+
+                if (produtos.isEmpty()) {
+                    System.out.println("Nenhum produto disponivel nesta categoria.");
+                    continue;
+                }
+
+                // Exibe produtos
+                for (Produto p : produtos) {
+                    System.out.println("  " + p);
+                }
+
+                // Usuario escolhe produtos
+                boolean escolherMais = true;
+                while (escolherMais && cesta.quantidadeItens() < plano.getLimiteItens()) {
+                    System.out.print("\nDeseja adicionar um " + categoria.toLowerCase() + "? (S/N): ");
+                    String resposta = scanner.nextLine().trim().toUpperCase();
+
+                    if (resposta.equals("N")) {
+                        escolherMais = false;
+                    } else if (resposta.equals("S")) {
+                        System.out.print("ID do produto: ");
+                        try {
+                            int idProduto = Integer.parseInt(scanner.nextLine().trim());
+                            Produto produtoSelecionado = produtos.stream()
+                                .filter(p -> p.getIdProduto() == idProduto)
+                                .findFirst()
+                                .orElse(null);
+
+                            if (produtoSelecionado == null) {
+                                System.out.println("Produto nao encontrado!");
+                                continue;
+                            }
+
+                            System.out.print("Quantidade: ");
+                            int quantidade = Integer.parseInt(scanner.nextLine().trim());
+
+                            if (controller.adicionarProdutoNaCesta(produtoSelecionado, quantidade)) {
+                                System.out.println("Produto adicionado com sucesso!");
+                                System.out.println("Itens na cesta: " + cesta.quantidadeItens() + "/" + plano.getLimiteItens());
+                                System.out.println("Total: R$" + String.format("%.2f", cesta.calcularTotal()));
+                            } else {
+                                System.out.println("Nao foi possivel adicionar o produto (estoque insuficiente ou limite atingido).");
+                            }
+                        } catch (NumberFormatException e) {
+                            System.out.println("Digite um numero valido!");
+                        }
+                    }
+                }
+
+                if (cesta.quantidadeItens() >= plano.getLimiteItens()) {
+                    System.out.println("\nLimite de itens atingido!");
+                    montarMais = false;
+                }
+            }
+
+            // Exibe resumo da cesta
+            System.out.println("\n--- RESUMO DA CESTA ---");
+            if (cesta.estaVazia()) {
+                System.out.println("Cesta vazia!");
+                return;
+            }
+
+            for (Produto p : cesta.listarProdutos()) {
+                int qtd = cesta.getProdutosEscolhidos().get(p);
+                System.out.println("  " + qtd + "x " + p.getNome() + " - R$" + String.format("%.2f", p.getPrecoUnid() * qtd));
+            }
+            System.out.println("Total: R$" + String.format("%.2f", cesta.calcularTotal()));
+
+            // ETAPA 4: Endereco e Cartao
+            System.out.println("\n=== ETAPA 4: ENDERECO E PAGAMENTO ===");
+
+            // Endereco
+            System.out.print("Logradouro: ");
+            String logradouro = scanner.nextLine().trim();
+            System.out.print("Complemento: ");
+            String complemento = scanner.nextLine().trim();
+            System.out.print("CEP: ");
+            String cep = scanner.nextLine().trim();
+            System.out.print("Cidade: ");
+            String cidade = scanner.nextLine().trim();
+            System.out.print("Estado: ");
+            String estado = scanner.nextLine().trim();
+
+            Endereco endereco = new Endereco(logradouro, complemento, cep, cidade, estado);
+            cliente.vincularEndereco(endereco);
+
+            // Cartao
+            System.out.print("\nNumero do Cartao: ");
+            String numeroCartao = scanner.nextLine().trim();
+            System.out.print("Nome no Cartao: ");
+            String nomeCartao = scanner.nextLine().trim();
+            System.out.print("Validade (MM/AA): ");
+            String validade = scanner.nextLine().trim();
+            System.out.print("CVV: ");
+            String cvv = scanner.nextLine().trim();
+
+            // ETAPA 5: Finalizar Assinatura
+            System.out.println("\n=== ETAPA 5: FINALIZANDO ASSINATURA ===");
+            System.out.println("Processando transacao...");
+
+            Assinatura assinaturaSalva = controller.finalizarAssinatura(endereco, numeroCartao, 
+                                                                         nomeCartao, validade, cvv);
 
             System.out.println("\n============================================");
             System.out.println("   ASSINATURA REALIZADA COM SUCESSO!       ");
             System.out.println("============================================");
-            System.out.println(assinatura);
+            System.out.println("Protocolo: " + assinaturaSalva.getIdProtocolo());
+            System.out.println("Plano: " + plano.getNome());
+            System.out.println("Valor: R$" + String.format("%.2f", plano.getValorMensal()));
+            System.out.println("Endereco de entrega: " + endereco.toString());
+            System.out.println("Obrigado por assinar! Sua cesta chegara em breve.");
 
         } catch (IllegalArgumentException | IllegalStateException e) {
+            System.out.println("\nErro: " + e.getMessage());
+        } catch (RuntimeException e) {
             System.out.println("\nErro: " + e.getMessage());
         } catch (IOException e) {
             System.out.println("\nErro ao acessar dados: " + e.getMessage());
@@ -171,14 +299,7 @@ public class TelaAssinaturaFeira {
         System.out.print("Telefone: ");
         String telefone = scanner.nextLine().trim();
 
-        System.out.print("Endereco de entrega: ");
-        String endereco = scanner.nextLine().trim();
-        if (endereco.isEmpty()) {
-            System.out.println("Endereco obrigatorio para entrega.");
-            return null;
-        }
-
-        Cliente cliente = new Cliente(cpf, nome, email, telefone, endereco);
+        Cliente cliente = new Cliente(cpf, nome, email, telefone);
         controller.cadastrarCliente(cliente);
         System.out.println("\nCadastro realizado com sucesso!");
         return cliente;

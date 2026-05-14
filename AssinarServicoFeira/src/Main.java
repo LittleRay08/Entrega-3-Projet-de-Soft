@@ -1,4 +1,4 @@
-﻿import fronteira.TelaAssinaturaFeira;
+import fronteira.TelaAssinaturaFeira;
 
 /**
  * Classe Principal - Ponto de entrada do sistema.

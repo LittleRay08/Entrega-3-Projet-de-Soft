@@ -1,4 +1,4 @@
-﻿package persistencia;
+package persistencia;
 
 import entidade.PlanoFeira;
 import java.util.ArrayList;
